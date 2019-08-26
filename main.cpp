@@ -1,40 +1,45 @@
-#include <iostream>
 #include <gtk/gtk.h>
-#include "core/i8080_state.h"
 
-static void activate(GtkApplication*, gpointer);
+GtkWidget *g_lbl_hello;
+GtkWidget *g_lbl_count;
+
+extern "C" {
+void on_btn_hello_clicked(GtkButton *button, gpointer userdata) {
+    static unsigned int count = 0;
+    char str_count[30] = {0};
+
+    gtk_label_set_text(GTK_LABEL(g_lbl_hello), "Hello, world!");
+    count++;
+    sprintf(str_count, "%d", count);
+    gtk_label_set_text(GTK_LABEL(g_lbl_count), str_count);
+}
+
+// called when window is closed
+void on_window_main_destroy(GtkWidget *widget, gpointer userdata) {
+    gtk_main_quit();
+}
+}
 
 int main(int argc, char *argv[]) {
-    i8080_state state{};
-    printf("SysSize: %li bytes\n", sizeof(state));
-
-    static_assert(sizeof(state.AF) == 2, "");
-    static_assert(sizeof(state.BC) == 2, "");
-    static_assert(sizeof(state.DE) == 2, "");
-    static_assert(sizeof(state.HL) == 2, "");
-    static_assert(sizeof(state.SP) == 2, "");
-    static_assert(sizeof(state.PC) == 2, "");
-
-    printf("AF=0x%04X\n", state.AF.af);
-
-
-    GtkApplication *app;
-    int status;
-
-    app = gtk_application_new("dev.imsai.i8080sim", G_APPLICATION_FLAGS_NONE);
-    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
-    status = g_application_run(G_APPLICATION(app), argc, argv);
-    g_object_unref(app);
-
-    return status;
-}
-
-static void activate(GtkApplication* app, gpointer user_data) {
+    GtkBuilder *builder;
     GtkWidget *window;
 
-    window = gtk_application_window_new(app);
-    gtk_window_set_title(GTK_WINDOW(window), "Intel 8080 Emulator");
-    gtk_window_set_default_size(GTK_WINDOW(window), 640, 640);
+    gtk_init(&argc, &argv);
 
-    gtk_widget_show_all(window);
+    builder = gtk_builder_new();
+    gtk_builder_add_from_file(builder, "glade/window_main.glade", NULL);
+
+    window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
+    gtk_builder_connect_signals(builder, NULL);
+
+    g_lbl_hello = GTK_WIDGET(gtk_builder_get_object(builder, "lbl_hello"));
+    g_lbl_count = GTK_WIDGET(gtk_builder_get_object(builder, "lbl_count"));
+
+    g_object_unref(G_OBJECT(builder));
+
+    gtk_widget_show(window);
+    gtk_main();
+
+    return 0;
 }
+
