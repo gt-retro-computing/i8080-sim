@@ -1,59 +1,10 @@
 #include <iostream>
+#include <gtk/gtk.h>
+#include "core/i8080_state.h"
 
-struct flags {
-    uint8_t sign:1;
-    uint8_t zero:1;
-    uint8_t _padding1:1;
-    uint8_t aux_carry:1;
-    uint8_t  _padding2:1;
-    uint8_t parity:1;
-    uint8_t  _padding3:1;
-    uint8_t carry:1;
-};
+static void activate(GtkApplication*, gpointer);
 
-struct i8080_state {
-    union {
-        uint16_t af;
-        struct {
-            uint8_t a;
-            flags f;
-        } sub;
-    } AF;
-
-    union {
-        uint16_t bc;
-        struct {
-            uint8_t b;
-            uint8_t c;
-        } sub;
-    } BC;
-    union {
-        uint16_t de;
-        struct {
-            uint8_t d;
-            uint8_t e;
-        } sub;
-    } DE;
-    union {
-        uint16_t hl;
-        struct {
-            uint8_t h;
-            uint8_t l;
-        } sub;
-    } HL;
-
-    union {
-        uint16_t sp;
-    } SP;
-
-    union {
-        uint16_t pc;
-    } PC;
-
-    uint8_t memory[0x10000];
-};
-
-int main() {
+int main(int argc, char *argv[]) {
     i8080_state state{};
     printf("SysSize: %li bytes\n", sizeof(state));
 
@@ -66,5 +17,24 @@ int main() {
 
     printf("AF=0x%04X\n", state.AF.af);
 
-    return 0;
+
+    GtkApplication *app;
+    int status;
+
+    app = gtk_application_new("dev.imsai.i8080sim", G_APPLICATION_FLAGS_NONE);
+    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
+    status = g_application_run(G_APPLICATION(app), argc, argv);
+    g_object_unref(app);
+
+    return status;
+}
+
+static void activate(GtkApplication* app, gpointer user_data) {
+    GtkWidget *window;
+
+    window = gtk_application_window_new(app);
+    gtk_window_set_title(GTK_WINDOW(window), "Intel 8080 Emulator");
+    gtk_window_set_default_size(GTK_WINDOW(window), 640, 640);
+
+    gtk_widget_show_all(window);
 }
