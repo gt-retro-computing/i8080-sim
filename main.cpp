@@ -4,16 +4,6 @@ GtkWidget *g_lbl_hello;
 GtkWidget *g_lbl_count;
 
 extern "C" {
-void on_btn_hello_clicked(GtkButton *button, gpointer userdata) {
-    static unsigned int count = 0;
-    char str_count[30] = {0};
-
-    gtk_label_set_text(GTK_LABEL(g_lbl_hello), "Hello, world aaaaaaaaaaaa!");
-    count++;
-    sprintf(str_count, "%d", count);
-    gtk_label_set_text(GTK_LABEL(g_lbl_count), str_count);
-}
-
 // called when window is closed
 void on_window_main_destroy(GtkWidget *widget, gpointer userdata) {
     gtk_main_quit();
@@ -38,8 +28,9 @@ int main(int argc, char *argv[]) {
     g_object_unref(G_OBJECT(builder));
 
     gtk_widget_show(window);
+    gtk_window_set_keep_above(GTK_WINDOW(window), gtk_true());
+    gtk_window_set_keep_above(GTK_WINDOW(window), gtk_false());
     gtk_main();
-
     return 0;
 }
 
