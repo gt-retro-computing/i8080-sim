@@ -49,6 +49,7 @@
             <signal name="clicked" handler="on_btn_hello_clicked" swapped="no"/>
           </object>
           <packing>
+            <property name="x">126</property>
             <property name="y">131</property>
           </packing>
         </child>

@@ -8,7 +8,7 @@ void on_btn_hello_clicked(GtkButton *button, gpointer userdata) {
     static unsigned int count = 0;
     char str_count[30] = {0};
 
-    gtk_label_set_text(GTK_LABEL(g_lbl_hello), "Hello, world!");
+    gtk_label_set_text(GTK_LABEL(g_lbl_hello), "Hello, world aaaaaaaaaaaa!");
     count++;
     sprintf(str_count, "%d", count);
     gtk_label_set_text(GTK_LABEL(g_lbl_count), str_count);
