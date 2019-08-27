@@ -34,6 +34,7 @@ struct i8080_state {
     uint8_t memory[0x10000];
     uint8_t int_enable:1;
     uint8_t halt:1;
+    void (*out_port)(uint8_t, uint8_t);
 };
 
 void gwemu_exec_step(struct i8080_state *);

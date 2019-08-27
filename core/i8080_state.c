@@ -22,7 +22,9 @@ static uint8_t machineIN(struct i8080_state *state, uint8_t port) {
 }
 
 static void machineOUT(struct i8080_state *state, uint8_t port) {
-    g_print("P(0x%2X): 0x%2X\n", port, state->a);
+    if (state->out_port != NULL) {
+        state->out_port(port, state->a);
+    }
     /* switch(port) */
     /* { */
     /*     case 2: */
