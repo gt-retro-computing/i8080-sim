@@ -29,18 +29,36 @@ gboolean gwemu_loop(gpointer userdata) {
     gwemu_setUint8_to_register_widgets(reg_e, master_state.DE.sub.e);
     gwemu_setUint8_to_register_widgets(reg_h, master_state.HL.sub.h);
     gwemu_setUint8_to_register_widgets(reg_l, master_state.HL.sub.l);
+    gwemu_setUint16_to_register_widgets(reg_sp, master_state.SP.sp);
+    gwemu_setUint16_to_register_widgets(reg_sp, master_state.PC.pc);
 
     return true;
 }
 
 int main(int argc, char *argv[]) {
+
+    char cwd[PATH_MAX];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("Current working dir: %s\n", cwd);
+    } else {
+        perror("getcwd() error");
+        return 1;
+    }
+
     GtkBuilder *builder;
     GtkWidget *window;
+    GError *err;
 
     gtk_init(&argc, &argv);
 
     builder = gtk_builder_new();
-    gtk_builder_add_from_file(builder, "glade/window_main.glade", NULL);
+    gtk_builder_add_from_file(builder, "glade/window_main.glade", &err);
+    if(err != NULL)
+    {
+        fprintf(stderr,"Unable to read file: %s\n", err->message);
+        g_error_free(err);
+        return 1;
+    }
 
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
     gtk_builder_connect_signals(builder, NULL);
@@ -109,11 +127,43 @@ int main(int argc, char *argv[]) {
     reg_l[6] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_l_6"));
     reg_l[7] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_l_7"));
 
-    g_object_unref(G_OBJECT(builder));
+    reg_sp[0] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_0"));
+    reg_sp[1] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_1"));
+    reg_sp[2] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_2"));
+    reg_sp[3] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_3"));
+    reg_sp[4] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_4"));
+    reg_sp[5] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_5"));
+    reg_sp[6] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_6"));
+    reg_sp[7] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_7"));
+    reg_sp[8] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_8"));
+    reg_sp[9] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_9"));
+    reg_sp[10] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_10"));
+    reg_sp[11] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_11"));
+    reg_sp[12] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_12"));
+    reg_sp[13] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_13"));
+    reg_sp[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_14"));
+    reg_sp[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_15"));
+
+    reg_pc[0] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_0"));
+    reg_pc[1] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_1"));
+    reg_pc[2] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_2"));
+    reg_pc[3] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_3"));
+    reg_pc[4] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_4"));
+    reg_pc[5] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_5"));
+    reg_pc[6] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_6"));
+    reg_pc[7] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_7"));
+    reg_pc[8] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_8"));
+    reg_pc[9] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_9"));
+    reg_pc[10] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_10"));
+    reg_pc[11] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_11"));
+    reg_pc[12] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_12"));
+    reg_pc[13] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_13"));
+    reg_pc[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_14"));
+    reg_pc[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_15"));
+
+    g_object_unref(builder);
 
     gtk_widget_show(window);
-    gtk_window_set_keep_above(GTK_WINDOW(window), gtk_true());
-    gtk_window_set_keep_above(GTK_WINDOW(window), gtk_false());
 
     g_timeout_add(30, gwemu_loop, NULL);
 

@@ -16,4 +16,4 @@ add_definitions(${GTK3_CFLAGS_OTHER})
 
 add_executable(i8080sim main.cpp core/i8080_state.c ui/ui_utils.c)
 
-TARGET_LINK_LIBRARIES(i8080sim ${GTK3_LIBRARIES} -export-dynamic)
+TARGET_LINK_LIBRARIES(i8080sim ${GTK3_LIBRARIES})
