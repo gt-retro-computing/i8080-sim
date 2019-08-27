@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include <dialog.h>
 #include "ui/ui_utils.h"
 #include "core/i8080_state.h"
 
@@ -8,6 +9,7 @@ GtkWidget
         *reg_sp[16], *reg_pc[16];
 
 GtkWidget *dataDisplay[8];
+GtkWidget *window;
 
 // called when window is closed
 void on_window_main_destroy(GtkWidget *widget, gpointer userdata) {
@@ -24,6 +26,52 @@ void gwemu_btn_reset() {
     master_state.DE.de=0;
     master_state.HL.hl=0;
     master_state.SP.sp=0;
+}
+
+void gwemu_btn_load_bin() {
+    GtkWidget *dialog;
+    gint res;
+
+    dialog = gtk_file_chooser_dialog_new ("Open File",
+                                          GTK_WINDOW(window),
+                                          GTK_FILE_CHOOSER_ACTION_OPEN,
+                                          _("_Cancel"),
+                                          GTK_RESPONSE_CANCEL,
+                                          _("_Open"),
+                                          GTK_RESPONSE_ACCEPT,
+                                          NULL);
+
+    res = gtk_dialog_run (GTK_DIALOG (dialog));
+    if (res == GTK_RESPONSE_ACCEPT)
+    {
+        char *filename;
+        GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
+        filename = gtk_file_chooser_get_filename (chooser);
+        g_print("file: %s\n", filename);
+
+        FILE* file = fopen(filename, "r");
+        if (file == NULL) {
+            return;
+        }
+        uint16_t loc = 0;
+        for(;;) {
+            uint8_t byte;
+            size_t size = fread(&byte, 1, 1, file);
+            if (size == 0) {
+                break;
+            }
+            master_state.memory[loc++] = byte;
+            if (loc == 0) {
+                g_print("File Too large");
+                break;
+            }
+        }
+        fclose(file);
+
+        g_free (filename);
+    }
+
+    gtk_widget_destroy (dialog);
 }
 
 gboolean gwemu_btn_examine_next() {
@@ -123,7 +171,6 @@ int main(int argc, char *argv[]) {
     }
 
     GtkBuilder *builder;
-    GtkWidget *window;
     GError *err = NULL;
 
     gtk_init(&argc, &argv);

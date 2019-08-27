@@ -3,17 +3,17 @@
 //
 
 #include "i8080_state.h"
+#include <gtk/gtk.h>
 
-
-static int parity(int x, int size) {
+static int parity(unsigned int x, int size) {
     int i;
     int p = 0;
-    x = (x & ((1 << size) - 1));
+    x = (x & ((1u << size) - 1));
     for (i = 0; i < size; i++) {
-        if (x & 0x1) p++;
-        x = x >> 1;
+        if (x & 0x1u) p++;
+        x = x >> 1u;
     }
-    return (0 == (p & 0x1));
+    return (0 == (p & 0x1u));
 }
 
 static uint8_t machineIN(struct i8080_state *state, uint8_t port) {
@@ -22,6 +22,7 @@ static uint8_t machineIN(struct i8080_state *state, uint8_t port) {
 }
 
 static void machineOUT(struct i8080_state *state, uint8_t port) {
+    g_print("P(0x%2X): 0x%2X\n", port, state->AF.sub.a);
     /* switch(port) */
     /* { */
     /*     case 2: */
@@ -426,7 +427,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         case 0x46: // MOV B, M
         {
-            uint16_t offset = (state->HL.sub.h << 8) | (state->HL.sub.l);
+            uint16_t offset = (state->HL.sub.h << 8U) | (state->HL.sub.l);
             state->BC.sub.b = state->memory[offset];
             break;
         }
@@ -453,7 +454,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         case 0x4E: // MOV C, M
         {
-            uint16_t offset = (state->HL.sub.h << 8) | (state->HL.sub.l);
+            uint16_t offset = state->HL.hl;
             state->BC.sub.c = state->memory[offset];
             break;
         }
@@ -480,7 +481,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         case 0x56: // MOV D, M
         {
-            uint16_t offset = (state->HL.sub.h << 8) | (state->HL.sub.l);
+            uint16_t offset = state->HL.hl;
             state->DE.sub.d = state->memory[offset];
             break;
         }
@@ -668,15 +669,15 @@ void gwemu_exec_step(struct i8080_state *state) {
                 state->AF.sub.f.c = 0;
 
             // Parity is handled by a subroutine
-            state->AF.sub.f.p = parity(answer & 0xff, 8);
+            state->AF.sub.f.p = parity(answer & 0xffU, 8);
 
             // Auxiliary Carry
-            if ((state->AF.sub.a & 0xf) + (state->BC.sub.b & 0xf) > 0xf)
+            if ((state->AF.sub.a & 0xfu) + (state->BC.sub.b & 0xfu) > 0xf)
                 state->AF.sub.f.ac = 1;
             else
                 state->AF.sub.f.ac = 0;
 
-            state->AF.sub.a = answer & 0xff;
+            state->AF.sub.a = answer & 0xffu;
             break;
         }
             // The code for ADD can be condensed like this
