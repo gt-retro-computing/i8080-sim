@@ -25,19 +25,10 @@ static void machineOUT(struct i8080_state *state, uint8_t port) {
     if (state->out_port != NULL) {
         state->out_port(port, state->a);
     }
-    /* switch(port) */
-    /* { */
-    /*     case 2: */
-    /*         state->port.write2 = state->a & 0x7; */
-    /*         break; */
-    /*     case 4: */
-    /*         state->port.shift0 = state->port.shift1; */
-    /*         state->port.shift1 = state->a; */
-    /*         break; */
-    /* } */
 }
 
 void gwemu_exec_step(struct i8080_state *state) {
+    pthread_mutex_lock(&state->lock);
     uint8_t *opcode = &state->memory[state->pc++];
     switch (*opcode) {
         case 0x00: // NOP
@@ -1819,6 +1810,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         }
         default:
-            return; //NOP
+            break;
     }
+    pthread_mutex_unlock(&state->lock);
 }

@@ -2108,29 +2108,51 @@
             </child>
             <child>
               <object class="GtkButton">
-                <property name="label" translatable="yes">STOP</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-              </object>
-              <packing>
-                <property name="left_attach">2</property>
-                <property name="top_attach">0</property>
-                <property name="width">2</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton">
                 <property name="label" translatable="yes">RUN</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <signal name="clicked" handler="gwemu_btn_run" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">20</property>
+                <property name="top_attach">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">STOP</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="gwemu_btn_stop" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">20</property>
+                <property name="top_attach">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkEntry" id="switch_input">
+                <property name="width_request">32</property>
+                <property name="height_request">30</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="max_length">4</property>
+                <property name="width_chars">4</property>
+                <property name="caps_lock_warning">False</property>
               </object>
               <packing>
                 <property name="left_attach">4</property>
                 <property name="top_attach">0</property>
                 <property name="width">2</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
             </child>
             <child>
               <placeholder/>
@@ -2157,21 +2179,35 @@
           </packing>
         </child>
         <child>
-          <object class="GtkScrolledWindow" id="console_scroll">
-            <property name="height_request">150</property>
+          <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="vscrollbar_policy">always</property>
-            <property name="shadow_type">in</property>
+            <property name="can_focus">False</property>
             <child>
-              <object class="GtkTextView" id="console">
+              <object class="GtkScrolledWindow" id="console_scroll">
+                <property name="height_request">150</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="vadjustment">adjustment1</property>
-                <property name="editable">False</property>
-                <property name="cursor_visible">False</property>
-                <property name="accepts_tab">False</property>
+                <property name="vscrollbar_policy">always</property>
+                <property name="shadow_type">in</property>
+                <child>
+                  <object class="GtkTextView" id="console">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="vadjustment">adjustment1</property>
+                    <property name="editable">False</property>
+                    <property name="cursor_visible">False</property>
+                    <property name="accepts_tab">False</property>
+                  </object>
+                </child>
               </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>

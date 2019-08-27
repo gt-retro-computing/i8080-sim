@@ -9,30 +9,74 @@ GtkWidget
         *reg_a[8], *reg_b[8], *reg_c[8], *reg_d[8], *reg_e[8], *reg_h[8], *reg_l[8],
         *reg_sp[16], *reg_pc[16];
 
-GtkWidget *flag_s, *flag_z, *flag_ac, *flag_p, *flag_c;
+GtkWidget *flag_s, *flag_z, *flag_ac, *flag_p, *flag_c, *flag_run;
 GtkWidget *console, *console_scroll;
 GtkWidget *dataDisplay[8];
 GtkWidget *window;
 
-void gwemu_appendToConsole(char* spBuffer, int len) {
-    static GtkTextBuffer* buffer = NULL;
+struct consoleAppend {
+    char *buffer;
+    int len;
+};
+
+gboolean _gwemu_appendToConsole(void *userdata) {
+    static GtkTextBuffer *buffer = NULL;
     if (buffer == NULL) {
         buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(console));
     }
     GtkTextIter end;
     gtk_text_buffer_get_end_iter(buffer, &end);
-    gtk_text_buffer_insert(buffer, &end, spBuffer, len);
+    gtk_text_buffer_insert(buffer, &end, ((struct consoleAppend *) userdata)->buffer,
+                           ((struct consoleAppend *) userdata)->len);
 
-    GtkAdjustment* adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(console_scroll));
+    GtkAdjustment *adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(console_scroll));
     gtk_adjustment_set_value(adj, gtk_adjustment_get_upper(adj));
+    free(((struct consoleAppend*)userdata)->buffer);
+    free(userdata);
+    return FALSE;
+}
 
+void gwemu_btn_run() {
+    pthread_mutex_lock(&master_state.lock);
+    master_state.halt = FALSE;
+    pthread_mutex_unlock(&master_state.lock);
+}
+
+void gwemu_btn_stop() {
+    pthread_mutex_lock(&master_state.lock);
+    master_state.halt = TRUE;
+    pthread_mutex_unlock(&master_state.lock);
+}
+
+void gwemu_appendToConsole(char *spBuffer, int len) {
+    struct consoleAppend *dah = malloc(sizeof(struct consoleAppend));
+    dah->buffer = spBuffer;
+    dah->len = len;
+    g_main_context_invoke(NULL, _gwemu_appendToConsole, dah);
 }
 
 void gwemu_out_port(uint8_t port, uint8_t data) {
-    static char spBuffer[30];
+    char *spBuffer = malloc(sizeof(char)*30);
     int len = sprintf(spBuffer, "OUT:(0x%02X) => 0x%02X\n", port, data);
     gwemu_appendToConsole(spBuffer, len);
 }
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-noreturn"
+
+void *gwemu_run_loop(void *arg) {
+    uint16_t counter;
+    time_t lastCheck;
+    for (;;) {
+        if (!master_state.halt) {
+            gwemu_exec_step(&master_state);
+        } else {
+        }
+        usleep(100);
+    }
+}
+
+#pragma clang diagnostic pop
 
 // called when window is closed
 void on_window_main_destroy(GtkWidget *widget, gpointer userdata) {
@@ -44,6 +88,7 @@ void gwemu_btn_step() {
 }
 
 void gwemu_btn_reset() {
+    pthread_mutex_lock(&master_state.lock);
     master_state.a = 0;
     *(uint8_t *) &master_state.f = 0; // TOTAL HACK
     master_state.b = 0;
@@ -54,6 +99,7 @@ void gwemu_btn_reset() {
     master_state.l = 0;
     master_state.sp = 0;
     master_state.pc = 0;
+    pthread_mutex_unlock(&master_state.lock);
 }
 
 void gwemu_btn_load_bin() {
@@ -75,7 +121,7 @@ void gwemu_btn_load_bin() {
         GtkFileChooser *chooser = GTK_FILE_CHOOSER (dialog);
         filename = gtk_file_chooser_get_filename(chooser);
         g_print("file: %s\n", filename);
-        gwemu_appendToConsole("Loading bin...\n", -1);
+//        gwemu_appendToConsole("Loading bin...\n", -1);
 
         FILE *file = fopen(filename, "r");
         if (file == NULL) {
@@ -91,12 +137,12 @@ void gwemu_btn_load_bin() {
             master_state.memory[loc++] = byte;
             if (loc == 0) {
                 g_print("File Too large");
-                gwemu_appendToConsole("File Too Large\n", -1);
+//                gwemu_appendToConsole("File Too Large\n", -1);
                 break;
             }
         }
         fclose(file);
-        gwemu_appendToConsole("Done\n", -1);
+//        gwemu_appendToConsole("Done\n", -1);
 
         g_free(filename);
     }
@@ -105,11 +151,14 @@ void gwemu_btn_load_bin() {
 }
 
 gboolean gwemu_btn_examine_next() {
+    pthread_mutex_lock(&master_state.lock);
     master_state.pc++;
+    pthread_mutex_unlock(&master_state.lock);
     return FALSE;
 }
 
 gboolean gwemu_loop(gpointer userdata) {
+    pthread_mutex_lock(&master_state.lock);
     static uint8_t cache_a = 0xFF, cache_b = 0xFF, cache_c = 0xFF, cache_d = 0xFF, cache_e = 0xFF, cache_h = 0xFF, cache_l = 0xFF;
     static uint16_t cache_pc = 0xFFFF, cache_sp = 0xFFFF;
 
@@ -167,10 +216,19 @@ gboolean gwemu_loop(gpointer userdata) {
     gtk_image_set_from_icon_name(GTK_IMAGE(flag_c),
                                  (master_state.f.c) ? "gtk-yes" : "gtk-no",
                                  GTK_ICON_SIZE_LARGE_TOOLBAR);
+    gtk_image_set_from_icon_name(GTK_IMAGE(flag_run),
+                                 (master_state.halt) ? "gtk-stop" : "gtk-yes",
+                                 GTK_ICON_SIZE_LARGE_TOOLBAR);
+    pthread_mutex_unlock(&master_state.lock);
     return TRUE;
 }
 
 int main(int argc, char *argv[]) {
+    if (pthread_mutex_init(&master_state.lock, NULL) != 0) {
+        exit - 1;
+    };
+
+    master_state.halt = TRUE;
     master_state.out_port = gwemu_out_port;
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -309,6 +367,7 @@ int main(int argc, char *argv[]) {
     flag_ac = GTK_WIDGET(gtk_builder_get_object(builder, "flag_ac"));
     flag_p = GTK_WIDGET(gtk_builder_get_object(builder, "flag_p"));
     flag_c = GTK_WIDGET(gtk_builder_get_object(builder, "flag_c"));
+    flag_run = GTK_WIDGET(gtk_builder_get_object(builder, "status_light"));
 
     console = GTK_WIDGET(gtk_builder_get_object(builder, "console"));
     console_scroll = GTK_WIDGET(gtk_builder_get_object(builder, "console_scroll"));
@@ -317,7 +376,11 @@ int main(int argc, char *argv[]) {
 
     gtk_widget_show_all(window);
 
-    g_timeout_add(50, gwemu_loop, NULL);
+    g_idle_add(gwemu_loop, NULL);
+//    g_timeout_add(50, gwemu_loop, NULL);
+
+    pthread_t cThread;
+    pthread_create(&cThread, NULL, gwemu_run_loop, NULL);
 
     gtk_main();
     return 0;

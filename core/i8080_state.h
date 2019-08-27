@@ -3,6 +3,7 @@
 //
 
 #include "stdint.h"
+#include <pthread.h>
 
 #ifndef I8080SIM_I8080_STATE_H
 #define I8080SIM_I8080_STATE_H
@@ -35,6 +36,8 @@ struct i8080_state {
     uint8_t int_enable:1;
     uint8_t halt:1;
     void (*out_port)(uint8_t, uint8_t);
+
+    pthread_mutex_t lock;
 };
 
 void gwemu_exec_step(struct i8080_state *);
