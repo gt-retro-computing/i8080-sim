@@ -1,5 +1,4 @@
 #include <gtk/gtk.h>
-#include <dialog.h>
 #include "stdlib.h"
 #include "ui/ui_utils.h"
 #include "core/i8080_state.h"
@@ -109,9 +108,9 @@ void gwemu_btn_load_bin() {
     dialog = gtk_file_chooser_dialog_new("Open File",
                                          GTK_WINDOW(window),
                                          GTK_FILE_CHOOSER_ACTION_OPEN,
-                                         _("_Cancel"),
+                                         "_Cancel",
                                          GTK_RESPONSE_CANCEL,
-                                         _("_Open"),
+                                         "_Open",
                                          GTK_RESPONSE_ACCEPT,
                                          NULL);
 
