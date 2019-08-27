@@ -20,12 +20,16 @@ void gwemu_btn_step() {
 }
 
 void gwemu_btn_reset() {
-    master_state.PC.pc=0;
-    master_state.AF.af=0;
-    master_state.BC.bc=0;
-    master_state.DE.de=0;
-    master_state.HL.hl=0;
-    master_state.SP.sp=0;
+    master_state.a=0;
+    *(uint8_t *)&master_state.f = 0; // TOTAL HACK
+    master_state.b=0;
+    master_state.c=0;
+    master_state.d=0;
+    master_state.e=0;
+    master_state.h=0;
+    master_state.l=0;
+    master_state.sp=0;
+    master_state.pc=0;
 }
 
 void gwemu_btn_load_bin() {
@@ -75,7 +79,7 @@ void gwemu_btn_load_bin() {
 }
 
 gboolean gwemu_btn_examine_next() {
-    master_state.PC.pc++;
+    master_state.pc++;
     return FALSE;
 }
 
@@ -111,40 +115,43 @@ gboolean gwemu_loop(gpointer userdata) {
     static uint8_t cache_a=0xFF, cache_b=0xFF, cache_c=0xFF, cache_d=0xFF, cache_e=0xFF, cache_h=0xFF, cache_l=0xFF;
     static uint16_t cache_pc=0xFFFF, cache_sp=0xFFFF;
 
-    if (master_state.AF.sub.a != cache_a) {
-        cache_a = master_state.AF.sub.a;
-        gwemu_setUint8_to_register_widgets(reg_a, master_state.AF.sub.a);
+    if (master_state.a != cache_a) {
+        cache_a = master_state.a;
+        gwemu_setUint8_to_register_widgets(reg_a, master_state.a);
     }
-    if (master_state.BC.sub.b != cache_b) {
-        cache_b = master_state.BC.sub.b;
-        gwemu_setUint8_to_register_widgets(reg_b, master_state.BC.sub.b);
+    if (master_state.b != cache_b) {
+        cache_b = master_state.b;
+        gwemu_setUint8_to_register_widgets(reg_b, master_state.b);
     }
-    if (master_state.BC.sub.c != cache_c) {
-        cache_c = master_state.BC.sub.c;
-        gwemu_setUint8_to_register_widgets(reg_c, master_state.BC.sub.c);
+    if (master_state.c != cache_c) {
+        cache_c = master_state.c;
+        gwemu_setUint8_to_register_widgets(reg_c, master_state.c);
     }
-    if (master_state.DE.sub.d != cache_d) {
-        cache_d = master_state.DE.sub.d;
-        gwemu_setUint8_to_register_widgets(reg_d, master_state.DE.sub.d);
+    if (master_state.d != cache_d) {
+        cache_d = master_state.d;
+        gwemu_setUint8_to_register_widgets(reg_d, master_state.d);
     }
-    if (master_state.DE.sub.e != cache_e) {
-        cache_e = master_state.DE.sub.e;
-        gwemu_setUint8_to_register_widgets(reg_e, master_state.DE.sub.e);
+    if (master_state.e != cache_e) {
+        cache_e = master_state.e;
+        gwemu_setUint8_to_register_widgets(reg_e, master_state.e);
     }
-    if (master_state.HL.sub.h != cache_h) {
-        cache_h = master_state.HL.sub.h;
-        gwemu_setUint8_to_register_widgets(reg_h, master_state.HL.sub.h);
+    if (master_state.h != cache_h) {
+        cache_h = master_state.h;
+        gwemu_setUint8_to_register_widgets(reg_h, master_state.h);
     }
-    if (master_state.HL.sub.l != cache_l) {
-        cache_l = master_state.HL.sub.l;
-        gwemu_setUint8_to_register_widgets(reg_l, master_state.HL.sub.l);
+    if (master_state.l != cache_l) {
+        cache_l = master_state.l;
+        gwemu_setUint8_to_register_widgets(reg_l, master_state.l);
     }
-    gwemu_setUint16_to_register_widgets(reg_sp, master_state.SP.sp);
-    if (master_state.PC.pc != cache_pc) {
-        cache_pc = master_state.PC.pc;
-        gwemu_setUint16_to_register_widgets(reg_pc, master_state.PC.pc);
+    if (master_state.sp != cache_sp) {
+        cache_sp = master_state.sp;
+        gwemu_setUint16_to_register_widgets(reg_sp, master_state.sp);
     }
-    gwemu_setUint8_to_register_widgets(dataDisplay, master_state.memory[master_state.PC.pc]);
+    if (master_state.pc != cache_pc) {
+        cache_pc = master_state.pc;
+        gwemu_setUint16_to_register_widgets(reg_pc, master_state.pc);
+    }
+    gwemu_setUint8_to_register_widgets(dataDisplay, master_state.memory[master_state.pc]);
 
     return TRUE;
 }

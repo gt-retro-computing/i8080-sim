@@ -12,56 +12,30 @@ struct flags {
     uint8_t z:1;
     uint8_t _padding1:1;
     uint8_t ac:1;
-    uint8_t  _padding2:1;
+    uint8_t _padding2:1;
     uint8_t p:1;
-    uint8_t  _padding3:1;
+    uint8_t _padding3:1;
     uint8_t c:1;
 };
 
 struct i8080_state {
-    union {
-        uint16_t af;
-        struct {
-            uint8_t a;
-            struct flags f;
-        } sub;
-    } AF;
+    uint8_t a;
+    struct flags f;
 
-    union {
-        uint16_t bc;
-        struct {
-            uint8_t b;
-            uint8_t c;
-        } sub;
-    } BC;
-    union {
-        uint16_t de;
-        struct {
-            uint8_t d;
-            uint8_t e;
-        } sub;
-    } DE;
-    union {
-        uint16_t hl;
-        struct {
-            uint8_t h;
-            uint8_t l;
-        } sub;
-    } HL;
-
-    union {
-        uint16_t sp;
-    } SP;
-
-    union {
-        uint16_t pc;
-    } PC;
+    uint8_t b;
+    uint8_t c;
+    uint8_t d;
+    uint8_t e;
+    uint8_t h;
+    uint8_t l;
+    uint16_t sp;
+    uint16_t pc;
 
     uint8_t memory[0x10000];
     uint8_t int_enable:1;
     uint8_t halt:1;
 };
 
-void gwemu_exec_step(struct i8080_state*);
+void gwemu_exec_step(struct i8080_state *);
 
 #endif //I8080SIM_I8080_STATE_H
