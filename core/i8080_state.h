@@ -6,15 +6,16 @@
 
 #ifndef I8080SIM_I8080_STATE_H
 #define I8080SIM_I8080_STATE_H
+
 struct flags {
-    uint8_t sign:1;
-    uint8_t zero:1;
+    uint8_t s:1;
+    uint8_t z:1;
     uint8_t _padding1:1;
-    uint8_t aux_carry:1;
+    uint8_t ac:1;
     uint8_t  _padding2:1;
-    uint8_t parity:1;
+    uint8_t p:1;
     uint8_t  _padding3:1;
-    uint8_t carry:1;
+    uint8_t c:1;
 };
 
 struct i8080_state {
@@ -57,6 +58,10 @@ struct i8080_state {
     } PC;
 
     uint8_t memory[0x10000];
+    uint8_t int_enable:1;
+    uint8_t halt:1;
 };
+
+void gwemu_exec_step(struct i8080_state*);
 
 #endif //I8080SIM_I8080_STATE_H

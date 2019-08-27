@@ -1,24 +1,20 @@
 #include <gtk/gtk.h>
-#include <core/i8080_state.h>
-
-extern "C" {
 #include "ui/ui_utils.h"
 #include "core/i8080_state.h"
-}
 
-struct i8080_state master_state{};
+struct i8080_state master_state;
 GtkWidget
         *reg_a[8], *reg_b[8], *reg_c[8], *reg_d[8], *reg_e[8], *reg_h[8], *reg_l[8],
         *reg_sp[16], *reg_pc[16];
 
 GtkWidget *dataDisplay[8];
 
-extern "C" {
 // called when window is closed
 void on_window_main_destroy(GtkWidget *widget, gpointer userdata) {
     gtk_main_quit();
 }
 void gwemu_btn_step() {
+    gwemu_exec_step(&master_state);
 }
 
 void gwemu_btn_reset() {
@@ -32,7 +28,7 @@ void gwemu_btn_reset() {
 
 gboolean gwemu_btn_examine_next() {
     master_state.PC.pc++;
-    return false;
+    return FALSE;
 }
 
 gboolean custom_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
@@ -61,7 +57,6 @@ gboolean custom_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
     cairo_fill (cr);
 
     return FALSE;
-}
 }
 
 gboolean gwemu_loop(gpointer userdata) {
@@ -103,14 +98,21 @@ gboolean gwemu_loop(gpointer userdata) {
     }
     gwemu_setUint8_to_register_widgets(dataDisplay, master_state.memory[master_state.PC.pc]);
 
-    return true;
+    return TRUE;
 }
 
 int main(int argc, char *argv[]) {
 
     uint8_t *ram = master_state.memory;
 
-    ram[0] = 0303;
+    ram[0] = 0x3E;
+    ram[1] = 0x03;
+    ram[2] = 0x06;
+    ram[3] = 0x02;
+    ram[4] = 0x80;
+    ram[5] = 0xC3;
+    ram[6] = 0x00;
+    ram[7] = 0x00;
 
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
