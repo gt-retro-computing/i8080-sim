@@ -11,31 +11,106 @@ GtkWidget
         *reg_a[8], *reg_b[8], *reg_c[8], *reg_d[8], *reg_e[8], *reg_h[8], *reg_l[8],
         *reg_sp[16], *reg_pc[16];
 
+GtkWidget *dataDisplay[8];
+
 extern "C" {
 // called when window is closed
 void on_window_main_destroy(GtkWidget *widget, gpointer userdata) {
     gtk_main_quit();
 }
-void gwemu_btn_step_click() {
+void gwemu_btn_step() {
+}
+
+void gwemu_btn_reset() {
+    master_state.PC.pc=0;
+    master_state.AF.af=0;
+    master_state.BC.bc=0;
+    master_state.DE.de=0;
+    master_state.HL.hl=0;
+    master_state.SP.sp=0;
+}
+
+gboolean gwemu_btn_examine_next() {
+    master_state.PC.pc++;
+    return false;
+}
+
+gboolean custom_draw(GtkWidget *widget, cairo_t *cr, gpointer data)
+{
+    guint width, height;
+    GdkRGBA color;
+    GtkStyleContext *context;
+
+    context = gtk_widget_get_style_context (widget);
+
+    width = gtk_widget_get_allocated_width (widget);
+    height = gtk_widget_get_allocated_height (widget);
+
+    gtk_render_background (context, cr, 0, 0, width, height);
+
+    cairo_arc (cr,
+               width / 2.0, height / 2.0,
+               MIN (width, height) / 2.0,
+               0, 2 * G_PI);
+
+    gtk_style_context_get_color (context,
+                                 gtk_style_context_get_state (context),
+                                 &color);
+    gdk_cairo_set_source_rgba (cr, &color);
+
+    cairo_fill (cr);
+
+    return FALSE;
 }
 }
 
 gboolean gwemu_loop(gpointer userdata) {
+    static uint8_t cache_a=0xFF, cache_b=0xFF, cache_c=0xFF, cache_d=0xFF, cache_e=0xFF, cache_h=0xFF, cache_l=0xFF;
+    static uint16_t cache_pc=0xFFFF, cache_sp=0xFFFF;
 
-    gwemu_setUint8_to_register_widgets(reg_a, master_state.AF.sub.a);
-    gwemu_setUint8_to_register_widgets(reg_b, master_state.BC.sub.b);
-    gwemu_setUint8_to_register_widgets(reg_c, master_state.BC.sub.c);
-    gwemu_setUint8_to_register_widgets(reg_d, master_state.DE.sub.d);
-    gwemu_setUint8_to_register_widgets(reg_e, master_state.DE.sub.e);
-    gwemu_setUint8_to_register_widgets(reg_h, master_state.HL.sub.h);
-    gwemu_setUint8_to_register_widgets(reg_l, master_state.HL.sub.l);
+    if (master_state.AF.sub.a != cache_a) {
+        cache_a = master_state.AF.sub.a;
+        gwemu_setUint8_to_register_widgets(reg_a, master_state.AF.sub.a);
+    }
+    if (master_state.BC.sub.b != cache_b) {
+        cache_b = master_state.BC.sub.b;
+        gwemu_setUint8_to_register_widgets(reg_b, master_state.BC.sub.b);
+    }
+    if (master_state.BC.sub.c != cache_c) {
+        cache_c = master_state.BC.sub.c;
+        gwemu_setUint8_to_register_widgets(reg_c, master_state.BC.sub.c);
+    }
+    if (master_state.DE.sub.d != cache_d) {
+        cache_d = master_state.DE.sub.d;
+        gwemu_setUint8_to_register_widgets(reg_d, master_state.DE.sub.d);
+    }
+    if (master_state.DE.sub.e != cache_e) {
+        cache_e = master_state.DE.sub.e;
+        gwemu_setUint8_to_register_widgets(reg_e, master_state.DE.sub.e);
+    }
+    if (master_state.HL.sub.h != cache_h) {
+        cache_h = master_state.HL.sub.h;
+        gwemu_setUint8_to_register_widgets(reg_h, master_state.HL.sub.h);
+    }
+    if (master_state.HL.sub.l != cache_l) {
+        cache_l = master_state.HL.sub.l;
+        gwemu_setUint8_to_register_widgets(reg_l, master_state.HL.sub.l);
+    }
     gwemu_setUint16_to_register_widgets(reg_sp, master_state.SP.sp);
-    gwemu_setUint16_to_register_widgets(reg_sp, master_state.PC.pc);
+    if (master_state.PC.pc != cache_pc) {
+        cache_pc = master_state.PC.pc;
+        gwemu_setUint16_to_register_widgets(reg_pc, master_state.PC.pc);
+    }
+    gwemu_setUint8_to_register_widgets(dataDisplay, master_state.memory[master_state.PC.pc]);
 
     return true;
 }
 
 int main(int argc, char *argv[]) {
+
+    uint8_t *ram = master_state.memory;
+
+    ram[0] = 0303;
 
     char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
@@ -47,7 +122,7 @@ int main(int argc, char *argv[]) {
 
     GtkBuilder *builder;
     GtkWidget *window;
-    GError *err;
+    GError *err = NULL;
 
     gtk_init(&argc, &argv);
 
@@ -62,6 +137,15 @@ int main(int argc, char *argv[]) {
 
     window = GTK_WIDGET(gtk_builder_get_object(builder, "window_main"));
     gtk_builder_connect_signals(builder, NULL);
+
+    dataDisplay[0] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_0"));
+    dataDisplay[1] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_1"));
+    dataDisplay[2] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_2"));
+    dataDisplay[3] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_3"));
+    dataDisplay[4] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_4"));
+    dataDisplay[5] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_5"));
+    dataDisplay[6] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_6"));
+    dataDisplay[7] = GTK_WIDGET(gtk_builder_get_object(builder, "d_data_7"));
 
     // Register A
     reg_a[0] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_a_0"));
@@ -142,7 +226,7 @@ int main(int argc, char *argv[]) {
     reg_sp[12] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_12"));
     reg_sp[13] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_13"));
     reg_sp[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_14"));
-    reg_sp[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_15"));
+    reg_sp[15] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_sp_15"));
 
     reg_pc[0] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_0"));
     reg_pc[1] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_1"));
@@ -159,13 +243,13 @@ int main(int argc, char *argv[]) {
     reg_pc[12] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_12"));
     reg_pc[13] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_13"));
     reg_pc[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_14"));
-    reg_pc[14] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_15"));
+    reg_pc[15] = GTK_WIDGET(gtk_builder_get_object(builder, "reg_pc_15"));
 
     g_object_unref(builder);
 
     gtk_widget_show(window);
 
-    g_timeout_add(30, gwemu_loop, NULL);
+    g_timeout_add(50, gwemu_loop, NULL);
 
     gtk_main();
     return 0;

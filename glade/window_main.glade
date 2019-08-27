@@ -1602,78 +1602,6 @@
             <child>
               <placeholder/>
             </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -1927,7 +1855,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_72">
+              <object class="GtkImage" id="d_data_0">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -1939,7 +1867,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_73">
+              <object class="GtkImage" id="d_data_1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -1951,7 +1879,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_74">
+              <object class="GtkImage" id="d_data_2">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -1963,7 +1891,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_75">
+              <object class="GtkImage" id="d_data_3">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -1975,7 +1903,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_76">
+              <object class="GtkImage" id="d_data_4">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -1987,7 +1915,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_77">
+              <object class="GtkImage" id="d_data_5">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -1999,7 +1927,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_78">
+              <object class="GtkImage" id="d_data_6">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -2011,7 +1939,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkImage" id="reg_b_79">
+              <object class="GtkImage" id="d_data_7">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-yes</property>
@@ -2036,15 +1964,15 @@
             </child>
             <child>
               <object class="GtkButton">
-                <property name="label" translatable="yes">EXAMINE</property>
+                <property name="label" translatable="yes">EXA(M)INE</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
+                <accelerator key="m" signal="clicked"/>
               </object>
               <packing>
                 <property name="left_attach">16</property>
                 <property name="top_attach">0</property>
-                <property name="height">2</property>
               </packing>
             </child>
             <child>
@@ -2078,26 +2006,67 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <signal name="clicked" handler="gwemu_btn_step_click" swapped="no"/>
+                <signal name="clicked" handler="gwemu_btn_step" swapped="no"/>
                 <accelerator key="s" signal="clicked"/>
               </object>
               <packing>
                 <property name="left_attach">18</property>
-                <property name="top_attach">0</property>
-                <property name="height">2</property>
+                <property name="top_attach">1</property>
               </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkDrawingArea" id="drawing_1">
+                <property name="width_request">16</property>
+                <property name="height_request">16</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <signal name="draw" handler="custom_draw" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">0</property>
+                <property name="top_attach">0</property>
+              </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkDrawingArea" id="drawing_2">
+                <property name="width_request">16</property>
+                <property name="height_request">16</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <signal name="draw" handler="custom_draw" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="top_attach">0</property>
+              </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">EXAMINE
+   (N)EXT</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="gwemu_btn_examine_next" swapped="no"/>
+                <accelerator key="n" signal="clicked"/>
+              </object>
+              <packing>
+                <property name="left_attach">16</property>
+                <property name="top_attach">1</property>
+              </packing>
             </child>
             <child>
-              <placeholder/>
+              <object class="GtkButton">
+                <property name="label" translatable="yes">RST</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <signal name="clicked" handler="gwemu_btn_reset" swapped="no"/>
+              </object>
+              <packing>
+                <property name="left_attach">18</property>
+                <property name="top_attach">0</property>
+              </packing>
             </child>
             <child>
               <placeholder/>
