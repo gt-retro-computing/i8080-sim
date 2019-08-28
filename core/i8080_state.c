@@ -190,7 +190,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         {
             uint16_t pair = (state->d << 8) | (state->e);
             pair = pair - 1;
-            state->b = (pair & 0xff00) >> 8;
+            state->d = (pair & 0xff00) >> 8;
             state->e = pair & 0xff;
             break;
         }
