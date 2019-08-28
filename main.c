@@ -51,6 +51,7 @@ void gwemu_appendToConsole(char *spBuffer, int len) {
     struct consoleAppend *dah = malloc(sizeof(struct consoleAppend));
     dah->buffer = spBuffer;
     dah->len = len;
+    usleep(1000);
     g_main_context_invoke(NULL, _gwemu_appendToConsole, dah);
 }
 
@@ -70,8 +71,9 @@ void *gwemu_run_loop(void *arg) {
         if (!master_state.halt) {
             gwemu_exec_step(&master_state);
         } else {
+            usleep(1000);
         }
-        usleep(100);
+        g_usleep(0);
     }
 }
 
