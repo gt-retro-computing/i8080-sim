@@ -15,4 +15,8 @@ add_definitions(${GTK3_CFLAGS_OTHER})
 
 add_executable(i8080sim main.c core/i8080_state.c ui/ui_utils.c)
 
+add_executable(i8080cli cli/main.c core/i8080_state.c core/hex.c)
+
 TARGET_LINK_LIBRARIES(i8080sim ${GTK3_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} -rdynamic)
+
+TARGET_LINK_LIBRARIES(i8080cli ${CMAKE_THREAD_LIBS_INIT} -rdynamic)

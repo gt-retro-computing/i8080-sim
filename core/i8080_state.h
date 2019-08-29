@@ -35,7 +35,10 @@ struct i8080_state {
     uint8_t memory[0x10000];
     uint8_t int_enable:1;
     uint8_t halt:1;
-    void (*out_port)(uint8_t, uint8_t);
+    uint8_t skip_lock:1;
+
+    void (*out_port)(uint8_t port, uint8_t value);
+    uint8_t (*in_port)(uint8_t port);
 
     pthread_mutex_t lock;
 };

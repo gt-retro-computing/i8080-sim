@@ -5,6 +5,9 @@
 #include "i8080_state.h"
 #include <gtk/gtk.h>
 
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "hicpp-signed-bitwise"
+
 static int parity(unsigned int x, int size) {
     int i;
     int p = 0;
@@ -17,8 +20,11 @@ static int parity(unsigned int x, int size) {
 }
 
 static uint8_t machineIN(struct i8080_state *state, uint8_t port) {
-    uint8_t a = 0;
-    return a;
+    if (state->in_port != NULL) {
+        return state->in_port(port);
+    }
+
+    return 0;
 }
 
 static void machineOUT(struct i8080_state *state, uint8_t port) {
@@ -28,7 +34,13 @@ static void machineOUT(struct i8080_state *state, uint8_t port) {
 }
 
 void gwemu_exec_step(struct i8080_state *state) {
-    pthread_mutex_lock(&state->lock);
+    if (!state->skip_lock) {
+        pthread_mutex_lock(&state->lock);
+    }
+    if (state->halt) {
+        return;
+    }
+
     uint8_t *opcode = &state->memory[state->pc++];
     switch (*opcode) {
         case 0x00: // NOP
@@ -922,7 +934,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0x97: // SUB A
         {
-            uint16_t answer = (uint16_t) state->a - (uint16_t) state->a;
+            uint16_t answer = 0; // (uint16_t) state->a - (uint16_t) state->a;
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
@@ -1080,7 +1092,8 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         }
         case 0xA7: // ANA A
-            state->a = state->a & state->a;
+            // nop
+            // state->a = state->a & state->a;
             state->f.z = (state->a == 0);
             state->f.s = ((state->a & 0x80) == 0x80);
             state->f.p = parity(state->a, 8);
@@ -1147,7 +1160,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         }
         case 0xAF: // XRA A
-            state->a = state->a ^ state->a;
+            state->a = 0; //state->a ^ state->a;
             state->f.z = (state->a == 0);
             state->f.s = ((state->a & 0x80) == 0x80);
             state->f.p = parity(state->a, 8);
@@ -1214,7 +1227,8 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         }
         case 0xB7: // ORA A
-            state->a = state->a | state->a;
+            // nop
+            // state->a = state->a | state->a;
             state->f.z = (state->a == 0);
             state->f.s = ((state->a & 0x80) == 0x80);
             state->f.p = parity(state->a, 8);
@@ -1812,5 +1826,8 @@ void gwemu_exec_step(struct i8080_state *state) {
         default:
             break;
     }
-    pthread_mutex_unlock(&state->lock);
+    if (!state->skip_lock) {
+        pthread_mutex_unlock(&state->lock);
+    }
 }
+#pragma clang diagnostic pop
