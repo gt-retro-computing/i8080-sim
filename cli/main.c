@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 #include "core/i8080_state.h"
+#include "core/i8080_asm.h"
 #include "core/hex.h"
 
 enum OutState {
@@ -235,6 +236,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    gwemu_print_memory(stdout, &state);
     exit(EXIT_SUCCESS);
 
 }

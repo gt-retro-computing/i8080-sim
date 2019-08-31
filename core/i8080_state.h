@@ -8,6 +8,17 @@
 #ifndef I8080SIM_I8080_STATE_H
 #define I8080SIM_I8080_STATE_H
 
+#define I8080_TRACING 1
+
+#if I8080_TRACING
+struct i8080_mem_data {
+    uint32_t exec_count;
+    uint32_t write_count;
+    uint32_t read_count;
+};
+
+#endif
+
 struct flags {
     uint8_t s:1;
     uint8_t z:1;
@@ -41,6 +52,10 @@ struct i8080_state {
     uint8_t (*in_port)(uint8_t port);
 
     pthread_mutex_t lock;
+
+#if I8080_TRACING
+    struct i8080_mem_data trace_mem[0x10000];
+#endif
 };
 
 void gwemu_exec_step(struct i8080_state *);

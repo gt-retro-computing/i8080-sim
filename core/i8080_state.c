@@ -34,12 +34,16 @@ static void machineOUT(struct i8080_state *state, uint8_t port) {
 }
 
 static uint8_t gwemu_read_mem(struct i8080_state *state, uint16_t addr) {
-    
+#if I8080_TRACING
+    state->trace_mem[addr].read_count++;
+#endif
     return state->memory[addr];
 }
 
 static void gwemu_write_mem(struct i8080_state *state, uint16_t addr, uint8_t data) {
-
+#if I8080_TRACING
+    state->trace_mem[addr].write_count++;
+#endif
     state->memory[addr] = data;
 }
 
@@ -57,6 +61,10 @@ void gwemu_exec_step(struct i8080_state *state) {
     }
 
     uint8_t opcode = gwemu_read_mem(state, state->pc++);
+#if I8080_TRACING
+    state->trace_mem[state->pc - 1].exec_count++;
+#endif
+
     switch (opcode) {
         case 0x00: // NOP
             break;
