@@ -33,6 +33,21 @@ static void machineOUT(struct i8080_state *state, uint8_t port) {
     }
 }
 
+static uint8_t gwemu_read_mem(struct i8080_state *state, uint16_t addr) {
+    
+    return state->memory[addr];
+}
+
+static void gwemu_write_mem(struct i8080_state *state, uint16_t addr, uint8_t data) {
+
+    state->memory[addr] = data;
+}
+
+static uint8_t gwemu_opcode(struct i8080_state *state, uint16_t addr) {
+    // minus 1 because pc gets incremented at opcode read
+    return gwemu_read_mem(state, state->pc + addr - 1);
+}
+
 void gwemu_exec_step(struct i8080_state *state) {
     if (!state->skip_lock) {
         pthread_mutex_lock(&state->lock);
@@ -41,19 +56,19 @@ void gwemu_exec_step(struct i8080_state *state) {
         return;
     }
 
-    uint8_t *opcode = &state->memory[state->pc++];
-    switch (*opcode) {
+    uint8_t opcode = gwemu_read_mem(state, state->pc++);
+    switch (opcode) {
         case 0x00: // NOP
             break;
         case 0x01: // LXI B, word
-            state->c = opcode[1];
-            state->b = opcode[2];
+            state->c = gwemu_opcode(state, 1);
+            state->b = gwemu_opcode(state, 2);
             state->pc += 2; // Advance 2 more bytes
             break;
         case 0x02: // STAX B
         {
             uint16_t pair = (state->b << 8) | (state->c);
-            state->memory[pair] = state->a;
+            gwemu_write_mem(state, pair, state->a);
             break;
         }
         case 0x03: // INX B
@@ -79,7 +94,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->f.ac = ((state->b & 0xf) == 0x0);
             break;
         case 0x06: // MVI B, byte
-            state->b = opcode[1];
+            state->b = gwemu_opcode(state, 1);
             state->pc++; // for the data byte
             break;
         case 0x07: // RLC
@@ -102,7 +117,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x0A: // LDAX B
         {
             uint16_t pair = (state->b << 8) | (state->c);
-            state->a = state->memory[pair];
+            state->a = gwemu_read_mem(state, pair);
             break;
         }
         case 0x0B: // DCX B
@@ -128,7 +143,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->f.ac = ((state->c & 0xf) == 0x0);
             break;
         case 0x0E: // MVI C, byte
-            state->c = opcode[1];
+            state->c = gwemu_opcode(state, 1);
             state->pc++; // for the data byte
             break;
         case 0x0F: // RRC
@@ -139,14 +154,14 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         }
         case 0x11: // LXI D, word
-            state->e = opcode[1];
-            state->d = opcode[2];
+            state->e = gwemu_opcode(state, 1);
+            state->d = gwemu_opcode(state, 2);
             state->pc += 2; // Advance 2 more bytes
             break;
         case 0x12: // STAX D
         {
             uint16_t pair = (state->d << 8) | (state->e);
-            state->memory[pair] = state->a;
+            gwemu_write_mem(state, pair, state->a);
             break;
         }
         case 0x13: // INX D
@@ -172,7 +187,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->f.ac = ((state->d & 0xf) == 0x0);
             break;
         case 0x16: // MVI D, byte
-            state->d = opcode[1];
+            state->d = gwemu_opcode(state, 1);
             state->pc++; // for the data byte
             break;
         case 0x17: // RAL
@@ -195,7 +210,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x1A: // LDAX D
         {
             uint16_t pair = (state->d << 8) | (state->e);
-            state->a = state->memory[pair];
+            state->a = gwemu_read_mem(state, pair);
             break;
         }
         case 0x1B: // DCX D
@@ -221,7 +236,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->f.ac = ((state->e & 0xf) == 0x0);
             break;
         case 0x1E: // MVI E, byte
-            state->e = opcode[1];
+            state->e = gwemu_opcode(state, 1);
             state->pc++; // for the data byte
             break;
         case 0x1F: // RAR
@@ -236,15 +251,15 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         }
         case 0x21: // LXI H, word
-            state->l = opcode[1];
-            state->h = opcode[2];
+            state->l = gwemu_opcode(state, 1);
+            state->h = gwemu_opcode(state, 2);
             state->pc += 2; // Advance 2 more bytes
             break;
         case 0x22: // SHLD adr
         {
-            uint16_t adr = (opcode[2] << 8) | (opcode[1]);
-            state->memory[adr] = state->l;
-            state->memory[adr+1] = state->h;
+            uint16_t adr = (gwemu_opcode(state, 2) << 8) | (gwemu_opcode(state, 1));
+            gwemu_write_mem(state, adr, state->l);
+            gwemu_write_mem(state, adr + 1, state->h);
             state->pc += 2;
             break;
         }
@@ -271,7 +286,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->f.ac = ((state->h & 0xf) == 0x0);
             break;
         case 0x26: // MVI H, byte
-            state->h = opcode[1];
+            state->h = gwemu_opcode(state, 1);
             state->pc++; // for the data byte
             break;
         case 0x29: // DAD H
@@ -285,9 +300,9 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0x2A: //LHLD addr
         {
-            uint16_t adr = (opcode[2] << 8) | (opcode[1]);
-            state->l = state->memory[adr];
-            state->h = state->memory[adr+1];
+            uint16_t adr = (gwemu_opcode(state, 2) << 8) | (gwemu_opcode(state, 1));
+            state->l = gwemu_read_mem(state, adr);
+            state->h = gwemu_read_mem(state, adr + 1);
             state->pc += 2;
             break;
         }
@@ -314,20 +329,20 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->f.ac = ((state->l & 0xf) == 0x0);
             break;
         case 0x2E: // MVI l, byte
-            state->l = opcode[1];
+            state->l = gwemu_opcode(state, 1);
             state->pc++; // for the data byte
             break;
         case 0x2F: // CMA (not)
             state->a = ~state->a;
             break;
         case 0x31: // LXI SP, word
-            state->sp = (opcode[2] << 8) | (opcode[1]);
+            state->sp = (gwemu_opcode(state, 2) << 8) | (gwemu_opcode(state, 1));
             state->pc += 2; // Advance 2 more bytes
             break;
         case 0x32: // STA adr
         {
-            uint16_t adr = (opcode[2] << 8) | (opcode[1]);
-            state->memory[adr] = state->a;
+            uint16_t adr = (gwemu_opcode(state, 2) << 8) | (gwemu_opcode(state, 1));
+            gwemu_write_mem(state, adr, state->a);
             state->pc += 2;
             break;
         }
@@ -342,27 +357,31 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x34: // INR M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->memory[offset] + 1;
-            state->f.z = ((state->memory[offset]) == 0);
-            state->f.s = ((state->memory[offset] & 0x80) == 0x80);
-            state->f.p = parity(state->memory[offset], 8);
-            state->f.ac = ((state->memory[offset] & 0xf) == 0xf);
+            uint8_t value = gwemu_read_mem(state, offset);
+            
+            gwemu_write_mem(state, offset, value + 1);
+            state->f.z = ((value) == 0);
+            state->f.s = ((value & 0x80) == 0x80);
+            state->f.p = parity(value, 8);
+            state->f.ac = ((value & 0xf) == 0xf);
             break;
         }
         case 0x35: // DCR M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->memory[offset] - 1;
-            state->f.z = ((state->memory[offset]) == 0);
-            state->f.s = ((state->memory[offset] & 0x80) == 0x80);
-            state->f.p = parity(state->memory[offset], 8);
-            state->f.ac = ((state->memory[offset] & 0xf) == 0x0);
+            uint8_t value = gwemu_read_mem(state, offset);
+            
+            gwemu_write_mem(state, offset, value - 1);
+            state->f.z = ((value) == 0);
+            state->f.s = ((value & 0x80) == 0x80);
+            state->f.p = parity(value, 8);
+            state->f.ac = ((value & 0xf) == 0x0);
             break;
         }
         case 0x36: // MVI M, byte
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = opcode[1];
+            gwemu_write_mem(state, offset, gwemu_opcode(state, 1));
             state->pc++; // for the data byte
             break;
         }
@@ -382,8 +401,8 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0x3A: // LDA adr
         {
-            uint16_t adr = (opcode[2] << 8) | (opcode[1]);
-            state->a = state->memory[adr];
+            uint16_t adr = (gwemu_opcode(state, 2) << 8) | (gwemu_opcode(state, 1));
+            state->a = gwemu_read_mem(state, adr);
             state->pc += 2;
             break;
         }
@@ -407,7 +426,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->f.ac = ((state->a & 0xf) == 0x0);
             break;
         case 0x3E: // MVI A, byte
-            state->a = opcode[1];
+            state->a = gwemu_opcode(state, 1);
             state->pc++; // for the data byte
             break;
         case 0x3F: // CMC
@@ -434,7 +453,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x46: // MOV B, M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->b = state->memory[offset];
+            state->b = gwemu_read_mem(state, offset);
             break;
         }
         case 0x47: // MOV B, A
@@ -461,7 +480,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x4E: // MOV C, M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->c = state->memory[offset];
+            state->c = gwemu_read_mem(state, offset);
             break;
         }
         case 0x4F: // MOV C, A
@@ -488,7 +507,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x56: // MOV D, M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->d = state->memory[offset];
+            state->d = gwemu_read_mem(state, offset);
             break;
         }
         case 0x57: // MOV D, A
@@ -515,7 +534,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x5E: // MOV E, M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->e = state->memory[offset];
+            state->e = gwemu_read_mem(state, offset);
             break;
         }
         case 0x5F: // MOV E, A
@@ -542,7 +561,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x66: // MOV H, M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->h = state->memory[offset];
+            state->h = gwemu_read_mem(state, offset);
             break;
         }
         case 0x67: // MOV H, A
@@ -569,7 +588,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x6E: // MOV L, M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->l = state->memory[offset];
+            state->l = gwemu_read_mem(state, offset);
             break;
         }
         case 0x6F: // MOV L, A
@@ -578,47 +597,44 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x70: // MOV M, B
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->b;
+            gwemu_write_mem(state, offset, state->b);
             break;
         }
         case 0x71: // MOV M, C
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->c;
+            gwemu_write_mem(state, offset, state->c);
             break;
         }
         case 0x72: // MOV M, D
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->d;
+            gwemu_write_mem(state, offset, state->d);
             break;
         }
         case 0x73: // MOV M, E
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->e;
+            gwemu_write_mem(state, offset, state->e);
             break;
         }
         case 0x74: // MOV M, H
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->h;
+            gwemu_write_mem(state, offset, state->h);
             break;
         }
         case 0x75: // MOV M, L
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->l;
+            gwemu_write_mem(state, offset, state->l);
             break;
         }
         case 0x76: // HLT
             state->halt = 1;
         case 0x77: // MOV B, A
-        {
-            uint16_t offset = (state->h << 8) | (state->l);
-            state->memory[offset] = state->a;
+            state->b = state->b;
             break;
-        }
         case 0x78: // MOV A, B
             state->a = state->b;
             break;
@@ -640,7 +656,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x7E: // MOV A, M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->a = state->memory[offset];
+            state->a = gwemu_read_mem(state, offset);
             break;
         }
         case 0x7F: // MOV A, A
@@ -745,12 +761,14 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x86: // ADD M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            uint16_t answer = (uint16_t) state->a + state->memory[offset];
+            uint8_t value = gwemu_read_mem(state, offset);
+            
+            uint16_t answer = (uint16_t) state->a + value;
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (state->memory[offset] & 0xf)) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (value & 0xf)) > 0xf);
             state->a = answer & 0xff;
             break;
         }
@@ -834,12 +852,14 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x8E: // ADC M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            uint16_t answer = (uint16_t) state->a + state->memory[offset] + state->f.c;
+            uint8_t value = gwemu_read_mem(state, offset);
+            
+            uint16_t answer = (uint16_t) state->a + value + state->f.c;
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (state->memory[offset] & 0xf) + state->f.c) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (value & 0xf) + state->f.c) > 0xf);
             state->a = answer & 0xff;
             break;
         }
@@ -923,12 +943,14 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x96: // SUB M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            uint16_t answer = (uint16_t) state->a - state->memory[offset];
+            uint8_t value = gwemu_read_mem(state, offset);
+            
+            uint16_t answer = (uint16_t) state->a - value;
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (-(state->memory[offset]) & 0xf)) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (-(value) & 0xf)) > 0xf);
             state->a = answer & 0xff;
             break;
         }
@@ -1012,12 +1034,14 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0x9E: // SBB M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            uint16_t answer = (uint16_t) state->a - (state->memory[offset] + state->f.c);
+            uint8_t value = gwemu_read_mem(state, offset);
+            
+            uint16_t answer = (uint16_t) state->a - (value + state->f.c);
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (-(state->memory[offset] + state->f.c) & 0xf)) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (-(value + state->f.c) & 0xf)) > 0xf);
             state->a = answer & 0xff;
             break;
         }
@@ -1083,7 +1107,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xA6: // ANA M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->a = state->a & state->memory[offset];
+            state->a = state->a & gwemu_read_mem(state, offset);
             state->f.z = (state->a == 0);
             state->f.s = ((state->a & 0x80) == 0x80);
             state->f.p = parity(state->a, 8);
@@ -1151,7 +1175,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xAE: // XRA M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->a = state->a ^ state->memory[offset];
+            state->a = state->a ^ gwemu_read_mem(state, offset);
             state->f.z = (state->a == 0);
             state->f.s = ((state->a & 0x80) == 0x80);
             state->f.p = parity(state->a, 8);
@@ -1218,7 +1242,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xB6: // ORA M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            state->a = state->a | state->memory[offset];
+            state->a = state->a | gwemu_read_mem(state, offset);
             state->f.z = (state->a == 0);
             state->f.s = ((state->a & 0x80) == 0x80);
             state->f.p = parity(state->a, 8);
@@ -1299,7 +1323,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xBE: // CMP M
         {
             uint16_t offset = (state->h << 8) | (state->l);
-            uint16_t res = (uint16_t) state->a - (uint16_t) state->memory[offset];
+            uint16_t res = (uint16_t) state->a - (uint16_t) gwemu_read_mem(state, offset);
             state->f.z = ((res & 0xff) == 0);
             state->f.s = ((res & 0x80) == 0x80);
             state->f.c = (res > 0xff);
@@ -1321,60 +1345,61 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xC0: // RNZ
             if (state->f.z == 0)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
         case 0xC1: // POP B
-            state->c = state->memory[state->sp];
-            state->b = state->memory[state->sp+1];
+            state->c = gwemu_read_mem(state, state->sp);
+            state->b = gwemu_read_mem(state, state->sp + 1);
             state->sp += 2;
             break;
         case 0xC2: // JNZ address
             if (state->f.z == 0)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
             break;
         case 0xC3: // JMP address
-            state->pc = (opcode[2] << 8) | opcode[1];
+            state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             break;
         case 0xC4: // CNZ address
         {
             if (state->f.z == 0)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
             break;
         }
         case 0xC5: // PUSH B
-            state->memory[state->sp-1] = state->b;
-            state->memory[state->sp-2] = state->c;
+            gwemu_write_mem(state, state->sp-1, state->b);
+            gwemu_write_mem(state, state->sp-2, state->c);
             state->sp = state->sp - 2;
             break;
         case 0xC6: // ADI byte
         {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) opcode[1];
+            uint16_t answer = (uint16_t) state->a + (uint16_t) gwemu_opcode(state, 1);
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (opcode[1] & 0xf)) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (gwemu_opcode(state, 1) & 0xf)) > 0xf);
             state->a = answer & 0xff;
             break;
         }
         case 0xC7: // RST 0
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x0;
             break;
@@ -1382,17 +1407,17 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xC8: // RZ
             if (state->f.z == 1)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
         case 0xC9: // RET
-            state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+            state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
             state->sp += 2;
             break;
         case 0xCA: // JZ address
             if (state->f.z == 1)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
@@ -1402,10 +1427,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             if (state->f.z == 1)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
@@ -1414,28 +1439,28 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xCD: // CALL address
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
-            state->pc = (opcode[2] << 8) | opcode[1];
+            state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             break;
         }
         case 0xCE: // ACI byte
         {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) opcode[1] + state->f.c;
+            uint16_t answer = (uint16_t) state->a + (uint16_t) gwemu_opcode(state, 1) + state->f.c;
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (opcode[1] & 0xf) + state->f.c) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (gwemu_opcode(state, 1) & 0xf) + state->f.c) > 0xf);
             state->a = answer & 0xff;
             break;
         }
         case 0xCF: // RST 1
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x8;
             break;
@@ -1443,25 +1468,25 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xD0: // RNC
             if (state->f.c == 0)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
         case 0xD1: // POP D
-            state->e = state->memory[state->sp];
-            state->d = state->memory[state->sp+1];
+            state->e = gwemu_read_mem(state, state->sp);
+            state->d = gwemu_read_mem(state, state->sp+1);
             state->sp += 2;
             break;
         case 0xD2: // JNC address
             if (state->f.c == 0)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
             break;
         case 0xD3: // OUT byte
         {
-            uint8_t port = opcode[1];
+            uint8_t port = gwemu_opcode(state, 1);
             machineOUT(state, port);
             state->pc++;
             break;
@@ -1471,36 +1496,36 @@ void gwemu_exec_step(struct i8080_state *state) {
             if (state->f.c == 0)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
             break;
         }
         case 0xD5: // PUSH D
-            state->memory[state->sp-1] = state->d;
-            state->memory[state->sp-2] = state->e;
+            gwemu_write_mem(state, state->sp-1, state->d);
+            gwemu_write_mem(state, state->sp-2, state->e);
             state->sp = state->sp - 2;
             break;
         case 0xD6: // SUI byte
         {
-            uint16_t answer = (uint16_t) state->a - (uint16_t) opcode[1];
+            uint16_t answer = (uint16_t) state->a - (uint16_t) gwemu_opcode(state, 1);
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (-(opcode[1]) & 0xf)) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (-(gwemu_opcode(state, 1)) & 0xf)) > 0xf);
             state->a = answer & 0xff;
             break;
         }
         case 0xD7: // RST 2
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x10;
             break;
@@ -1508,20 +1533,20 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xD8: // RC
             if (state->f.c == 1)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
         case 0xDA: // JC address
             if (state->f.c == 1)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
             break;
         case 0xDB: // IN byte
         {
-            uint8_t port = opcode[1];
+            uint8_t port = gwemu_opcode(state, 1);
             state->a = machineIN(state, port);
             state->pc++;
             break;
@@ -1531,10 +1556,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             if (state->f.c == 1)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
@@ -1542,20 +1567,20 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0xDE: // SCI byte
         {
-            uint16_t answer = (uint16_t) state->a - ((uint16_t) opcode[1] + state->f.c);
+            uint16_t answer = (uint16_t) state->a - ((uint16_t) gwemu_opcode(state, 1) + state->f.c);
             state->f.z = ((answer & 0xff) == 0);
             state->f.s = ((answer & 0x80) == 0x80);
             state->f.c = (answer > 0xff);
             state->f.p = parity(answer & 0xff, 8);
-            state->f.ac = (((state->a & 0xf) + (-(opcode[1] + state->f.c) & 0xf)) > 0xf);
+            state->f.ac = (((state->a & 0xf) + (-(gwemu_opcode(state, 1) + state->f.c) & 0xf)) > 0xf);
             state->a = answer & 0xff;
             break;
         }
         case 0xDF: // RST 3
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x18;
             break;
@@ -1563,18 +1588,18 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xE0: // RPO
             if (state->f.p == 0)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
         case 0xE1: // POP H
-            state->l = state->memory[state->sp];
-            state->h = state->memory[state->sp+1];
+            state->l = gwemu_read_mem(state, state->sp);
+            state->h = gwemu_read_mem(state, state->sp+1);
             state->sp += 2;
             break;
         case 0xE2: // JPO address
             if (state->f.p == 0)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
@@ -1582,12 +1607,12 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xE3: // XTHL
         {
             uint8_t swap = state->l;
-            state->l = state->memory[state->sp];
-            state->memory[state->sp] = swap;
+            state->l = gwemu_read_mem(state, state->sp);
+            gwemu_write_mem(state, state->sp, swap);
 
             swap = state->h;
-            state->h = state->memory[state->sp+1];
-            state->memory[state->sp+1] = swap;
+            state->h = gwemu_read_mem(state, state->sp+1);
+            gwemu_write_mem(state, state->sp+1, swap);
             break;
         }
         case 0xE4: // CPO address
@@ -1595,23 +1620,23 @@ void gwemu_exec_step(struct i8080_state *state) {
             if (state->f.p == 0)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
             break;
         }
         case 0xE5: // PUSH H
-            state->memory[state->sp-1] = state->h;
-            state->memory[state->sp-2] = state->l;
+            gwemu_write_mem(state, state->sp-1, state->h);
+            gwemu_write_mem(state, state->sp-2, state->l);
             state->sp = state->sp - 2;
             break;
         case 0xE6: // ANI byte
         {
-            uint8_t x = state-> a & opcode[1];
+            uint8_t x = state-> a & gwemu_opcode(state, 1);
             state->f.z = (x == 0);
             state->f.s = ((x & 0x80) == 0x80);
             state->f.p = parity(x, 8);
@@ -1624,8 +1649,8 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xE7: // RST 4
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x20;
             break;
@@ -1633,7 +1658,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xE8: // RPE
             if (state->f.p == 1)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
@@ -1642,7 +1667,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         case 0xEA: // JPE address
             if (state->f.p == 1)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
@@ -1663,10 +1688,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             if (state->f.p == 1)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
@@ -1674,7 +1699,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0xEE: // XRI byte
         {
-            uint8_t x = state-> a ^ opcode[1];
+            uint8_t x = state-> a ^ gwemu_opcode(state, 1);
             state->f.z = (x == 0);
             state->f.s = ((x & 0x80) == 0x80);
             state->f.p = parity(x, 8);
@@ -1687,8 +1712,8 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xEF: // RST 5
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x28;
             break;
@@ -1696,14 +1721,14 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xF0: // RP
             if (state->f.s == 0)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
         case 0xF1: // POP PSW
         {
-            state->a = state->memory[state->sp+1];
-            uint8_t psw = state->memory[state->sp];
+            state->a = gwemu_read_mem(state, state->sp+1);
+            uint8_t psw = gwemu_read_mem(state, state->sp);
             state->f.z = ((psw & 0x01) == 0x01);
             state->f.s = ((psw & 0x02) == 0x02);
             state->f.p = ((psw & 0x04) == 0x04);
@@ -1714,7 +1739,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0xF2: // JP address
             if (state->f.s == 0)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
@@ -1727,10 +1752,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             if (state->f.s == 0)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
@@ -1738,19 +1763,19 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0xF5: // PUSH PSW
         {
-            state->memory[state->sp-1] = state->a;
+            gwemu_write_mem(state, state->sp-1, state->a);
             uint8_t psw = (state->f.z  |
                            state->f.s  << 1 |
                            state->f.p  << 2 |
                            state->f.c << 3 |
                            state->f.ac << 4 );
-            state->memory[state->sp-2] = psw;
+            gwemu_write_mem(state, state->sp-2, psw);
             state->sp = state->sp - 2;
             break;
         }
         case 0xF6: // ORI byte
         {
-            uint8_t x = state-> a | opcode[1];
+            uint8_t x = state-> a | gwemu_opcode(state, 1);
             state->f.z = (x == 0);
             state->f.s = ((x & 0x80) == 0x80);
             state->f.p = parity(x, 8);
@@ -1763,8 +1788,8 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xF7: // RST 6
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x30;
             break;
@@ -1772,7 +1797,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xF8: // RM
             if (state->f.s == 1)
             {
-                state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);
+                state->pc = gwemu_read_mem(state, state->sp) | (gwemu_read_mem(state, state->sp+1) << 8);
                 state->sp += 2;
             }
             break;
@@ -1781,7 +1806,7 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         case 0xFA: // JM address
             if (state->f.s == 1)
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             else
                 // branch not taken
                 state->pc += 2;
@@ -1794,10 +1819,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             if (state->f.s == 1)
             {
                 uint16_t ret = state->pc + 2;
-                state->memory[state->sp-1] = (ret >> 8) & 0xff;
-                state->memory[state->sp-2] = (ret & 0xff);
+                gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+                gwemu_write_mem(state, state->sp-2, (ret & 0xff));
                 state->sp = state->sp - 2;
-                state->pc = (opcode[2] << 8) | opcode[1];
+                state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
             }
             else
                 state->pc += 2;
@@ -1805,7 +1830,7 @@ void gwemu_exec_step(struct i8080_state *state) {
         }
         case 0xFE: // CPI byte
         {
-            uint16_t res = (uint16_t) state->a - (uint16_t) opcode[1];
+            uint16_t res = (uint16_t) state->a - (uint16_t) gwemu_opcode(state, 1);
             state->f.z = ((res & 0xff) == 0);
             state->f.s = ((res & 0x80) == 0x80);
             state->f.c = (res > 0xff);
@@ -1817,8 +1842,8 @@ void gwemu_exec_step(struct i8080_state *state) {
         case 0xFF: // RST 7
         {
             uint16_t ret = state->pc + 2;
-            state->memory[state->sp-1] = (ret >> 8) & 0xff;
-            state->memory[state->sp-2] = (ret & 0xff);
+            gwemu_write_mem(state, state->sp-1, (ret >> 8) & 0xff);
+            gwemu_write_mem(state, state->sp-2, (ret & 0xff));
             state->sp = state->sp - 2;
             state->pc = 0x38;
             break;
