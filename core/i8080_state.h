@@ -15,6 +15,9 @@ struct i8080_mem_data {
     uint32_t exec_count;
     uint32_t write_count;
     uint32_t read_count;
+
+    // for conditional instructions, how many times the condition was true
+    uint32_t cond_count;
 };
 
 #endif

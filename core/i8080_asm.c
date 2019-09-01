@@ -293,7 +293,7 @@ void gwemu_print_memory(FILE *f, struct i8080_state *state) {
 
 #if I8080_TRACING
 
-        fprintf(f, "0x%04x\t%s\t\t%d\n", addr2, asm_buf, state->trace_mem[addr2].exec_count);
+        fprintf(f, "0x%04x\t%s\t\t%d\t%f\n", addr2, asm_buf, state->trace_mem[addr2].exec_count, state->trace_mem[addr2].cond_count / (float) state->trace_mem[addr2].exec_count);
 #else
         fprintf(f, "0x%04x\t%s\n", addr2, asm_buf);
 #endif

@@ -52,6 +52,12 @@ static uint8_t gwemu_opcode(struct i8080_state *state, uint16_t addr) {
     return gwemu_read_mem(state, state->pc + addr - 1);
 }
 
+static void gwemu_cond_taken(struct i8080_state *state) {
+#if I8080_TRACING
+    state->trace_mem[state->pc - 1].cond_count++;
+#endif
+}
+
 void gwemu_exec_step(struct i8080_state *state) {
     if (!state->skip_lock) {
         pthread_mutex_lock(&state->lock);
@@ -1363,9 +1369,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->sp += 2;
             break;
         case 0xC2: // JNZ address
-            if (state->f.z == 0)
+            if (state->f.z == 0) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
@@ -1424,9 +1431,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->sp += 2;
             break;
         case 0xCA: // JZ address
-            if (state->f.z == 1)
+            if (state->f.z == 1) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
@@ -1486,9 +1494,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->sp += 2;
             break;
         case 0xD2: // JNC address
-            if (state->f.c == 0)
+            if (state->f.c == 0) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
@@ -1546,9 +1555,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             }
             break;
         case 0xDA: // JC address
-            if (state->f.c == 1)
+            if (state->f.c == 1) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
@@ -1606,9 +1616,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->sp += 2;
             break;
         case 0xE2: // JPO address
-            if (state->f.p == 0)
+            if (state->f.p == 0) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
@@ -1674,9 +1685,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->pc = (state->h << 8) | (state->l);
             break;
         case 0xEA: // JPE address
-            if (state->f.p == 1)
+            if (state->f.p == 1) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
@@ -1746,9 +1758,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             break;
         }
         case 0xF2: // JP address
-            if (state->f.s == 0)
+            if (state->f.s == 0) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
@@ -1813,9 +1826,10 @@ void gwemu_exec_step(struct i8080_state *state) {
             state->sp = (state->h << 8) | (state->l);
             break;
         case 0xFA: // JM address
-            if (state->f.s == 1)
+            if (state->f.s == 1) {
+                gwemu_cond_taken(state);
                 state->pc = (gwemu_opcode(state, 2) << 8) | gwemu_opcode(state, 1);
-            else
+            } else
                 // branch not taken
                 state->pc += 2;
             break;
